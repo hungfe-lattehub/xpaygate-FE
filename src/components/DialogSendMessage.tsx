@@ -1,0 +1,99 @@
+import {useForm} from "react-hook-form";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle
+} from "@/components/ui/dialog";
+import {Label} from "@/components/ui/label";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
+import {sendMessge} from "@/service/Dispute.tsx";
+import {useState} from "react";
+import {ReloadIcon} from "@radix-ui/react-icons";
+import {convertToDispute, Dispute} from "@/type/Dispute.tsx";
+import {toast} from "@/components/ui/use-toast.ts";
+import {FileInput} from "@/components/FileInput.tsx";
+
+interface DialogSendMessageProps {
+	isDialogOpen: boolean;
+	setIsDialogOpen: (open: boolean) => void;
+	disputeID: string;
+	onResponse?: (data: Dispute) => void;
+}
+
+interface FormValues {
+	message: string;
+	file?: FileList;
+}
+
+export function DialogSendMessage({isDialogOpen, setIsDialogOpen, disputeID, onResponse}: DialogSendMessageProps) {
+	const {register, handleSubmit, formState: {errors}} = useForm<FormValues>();
+	const [loading, setLoading] = useState(false);
+	const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+	
+	const onSubmit = async (data: FormValues) => {
+		try {
+			setLoading(true);
+			const response = await sendMessge(disputeID, data.message, selectedFiles || data.file);
+			if (response) {
+				const dispute = convertToDispute(response.data);
+				onResponse && onResponse(dispute);
+				if (response.status === 200) {
+					toast({
+						title: "Success",
+						description: "Submit success",
+					})
+				} else {
+					toast({
+						title: "Error",
+						description: "[Submit failed] " + response.data.message,
+					})
+				}
+			}
+			setIsDialogOpen(false);
+		} catch (e) {
+			console.error(e);
+		} finally {
+			setLoading(false);
+		}
+	};
+	return (
+		<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+			<DialogContent className="sm:max-w-[625px]">
+				<DialogHeader>
+					<DialogTitle>Send Message</DialogTitle>
+					<DialogDescription>
+						[{disputeID}] Send Message to customer
+					</DialogDescription>
+				</DialogHeader>
+				<form onSubmit={handleSubmit(onSubmit)}>
+					<div className="grid gap-4 py-4">
+						<div className="grid w-full gap-1.5">
+							<Label htmlFor="message">Message</Label>
+							<Textarea
+								placeholder="Type your message here."
+								id="message"
+								{...register("message", {required: "Message is required"})}
+							/>
+							{errors.message && <span className="text-red-600">{errors.message.message}</span>}
+							<FileInput register={register} onFilesChange={setSelectedFiles}/>
+						</div>
+					</div>
+					<DialogFooter>
+						{loading ? (
+							<Button disabled>
+								<ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>
+								Please wait
+							</Button>
+						) : (
+							<Button className="bg-sky-600 hover:bg-sky-700" type="submit">Submit</Button>
+						)}
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}

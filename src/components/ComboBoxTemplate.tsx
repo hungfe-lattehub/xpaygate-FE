@@ -16,6 +16,8 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import {ComboxBoxItem} from "@/type/ComboxBoxItem.tsx";
+import {Checkbox} from "@/components/ui/checkbox.tsx";
+import {useState} from "react";
 
 type ComboBoxTemplateProps = {
 	data: ComboxBoxItem[];
@@ -26,7 +28,13 @@ type ComboBoxTemplateProps = {
 export function ComboBoxTemplate({data, onValueChange, placeholder}: ComboBoxTemplateProps) {
 	const [open, setOpen] = React.useState(false);
 	const [selectedValues, setSelectedValues] = React.useState<string[]>([]);
-	
+	const [isSelectAll, setIsSelectAll] = useState<boolean>(false)
+
+	const checkDataSubmit = (dataSelected: string[]) => {
+		return dataSelected.map((name) => data.find((item) => item.name === name)?.id || "")
+	}
+
+
 	const handleSelect = (currentValue: ComboxBoxItem) => {
 		const isSelected = selectedValues.includes(currentValue.name);
 		let newValues;
@@ -35,7 +43,13 @@ export function ComboBoxTemplate({data, onValueChange, placeholder}: ComboBoxTem
 		} else {
 			newValues = [...selectedValues, currentValue.name];
 		}
+
+		console.log('newValues', newValues)
+
 		onValueChange(newValues.map((name) => data.find((item) => item.name === name)?.id || ""));
+
+		console.log('submit', newValues.map((name) => data.find((item) => item.name === name)?.id || ""))
+
 		setSelectedValues(newValues);
 	};
 	
@@ -43,6 +57,22 @@ export function ComboBoxTemplate({data, onValueChange, placeholder}: ComboBoxTem
 		setSelectedValues([]);
 		onValueChange([]);
 	};
+
+	const handleSelectAll = () => {
+		if(selectedValues.length > 0) {
+			setSelectedValues([])
+			setIsSelectAll(false)
+			onValueChange([])
+		}
+		else {
+			setIsSelectAll(true)
+			const allDataSubmit: string[] = []
+			data.map((item) => allDataSubmit.push(item.name))
+
+			setSelectedValues(allDataSubmit)
+			onValueChange(checkDataSubmit(allDataSubmit))
+		}
+	}
 	
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -60,10 +90,11 @@ export function ComboBoxTemplate({data, onValueChange, placeholder}: ComboBoxTem
 			<PopoverContent className="w-[200px] p-0">
 				<Command>
 					<CommandInput placeholder="Search..." className="h-9"/>
-					<div>
+					<div className='flex justify-between items-center mr-4'>
 						<Button className="mr-0 text-sky-600" variant="link" onClick={handleClear}>
 							Clear
 						</Button>
+						<Checkbox onClick={handleSelectAll} checked={isSelectAll} />
 					</div>
 					<CommandEmpty>No items found.</CommandEmpty>
 					<CommandGroup>
